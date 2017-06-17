@@ -15,33 +15,76 @@ WORDS = "\w+"
 
 MATCH_REGEX = LOCATION_NAMES + "|" + APOSTROPHE + "|" + WORDS
 
-recipients = {}
-
-
 def upload_emails(request):
+
+    '''
+    In-memory variable data store
+    '''
+    if "words" not in request.session:
+        request.session["words"] = []
+    if "recipients" not in request.session:
+        request.session["recipients"] = []
+    if "counters" not in request.session:
+        request.session["counters"] = {}
+
     if request.method == 'POST':
 
-        data = json.loads(request.body.decode('utf-8'))
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+        except ValueError:
+            return JsonResponse({"Invalid JSON"}, status=403)
 
         for email in data["emails"]:
-            word_count = {}
 
+            '''
+            Counting all words first
+            '''
+            word_count = {}
             for word in re.findall(MATCH_REGEX, email["subject"]):
+                if not word in request.session["words"]:
+                    request.session["words"].append(word)
+
                 if not word in word_count:
                     word_count[word] = 1
                 else:
                     word_count[word] += 1
 
-            for recipient in email["recipients"]:
-                if not recipient in recipients:
-                    recipients[recipient] = word_count
-                else:
-                    for word in word_count:
-                        if word in recipients[recipient]:
-                            recipients[recipient][word] += word_count[word]
-                        else:
-                            recipients[recipient][word] = word_count[word]
+            '''
+            Going through all recipients
+            '''
+            unique_recipients = list(set(email["recipients"]))
+            for recipient in unique_recipients:
+                '''
+                If reciepient has not been seen before, recording recipient
+                '''
+                if not recipient in request.session["recipients"]:
+                    request.session["recipients"].append(recipient)
 
-        return JsonResponse({}, status=200)
+                '''
+                Incrementing word counts for given recipient
+                '''
+                for word in word_count:
+
+                    key = str(request.session["words"].index(word)) + "-" + str(request.session["recipients"].index(recipient))
+
+                    # If word has been used with this recipient before, increment
+                    # otherwise, set to word_count
+                    if key in request.session["counters"]:
+                        request.session["counters"][key] += word_count[word]
+
+                    else:
+                        request.session["counters"][key] = word_count[word]
+
+        # Django onlt considers it a change if a new key has been added
+        request.session.modified = True
+
+        '''
+        Response here just for manual testing
+        '''
+        return JsonResponse({
+            "words": request.session["words"],
+            "recipients": request.session["recipients"],
+            "counters": request.session["counters"],
+        }, status=200)
     else:
         return JsonResponse({}, status=400)
