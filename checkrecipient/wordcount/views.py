@@ -26,44 +26,49 @@ def upload_emails(request):
 
         for email in data["emails"]:
 
-            '''
-            Counting all words first
-            '''
-            word_count = {}
-            for word in re.findall(MATCH_REGEX, email["subject"]):
-                if not word in request.session["words"]:
-                    request.session["words"].append(word)
-
-                if not word in word_count:
-                    word_count[word] = 1
-                else:
-                    word_count[word] += 1
-
-            '''
-            Going through all recipients
-            '''
-            unique_recipients = list(set(email["recipients"]))
-            for recipient in unique_recipients:
-                '''
-                If reciepient has not been seen before, recording recipient
-                '''
-                if not recipient in request.session["recipients"]:
-                    request.session["recipients"].append(recipient)
+            # No point processing the same email twice
+            if email["timestamp"] not in request.session["emails"]:
+                request.session["emails"][email["timestamp"]] = []
 
                 '''
-                Incrementing word counts for given recipient
+                Counting all words first
                 '''
-                for word in word_count:
+                word_count = {}
+                for word in re.findall(MATCH_REGEX, email["subject"]):
+                    if not word in request.session["words"]:
+                        request.session["words"].append(word)
 
-                    key = str(request.session["words"].index(word)) + "-" + str(request.session["recipients"].index(recipient))
-
-                    # If word has been used with this recipient before, increment
-                    # otherwise, set to word_count
-                    if key in request.session["counters"]:
-                        request.session["counters"][key] += word_count[word]
-
+                    if not word in word_count:
+                        word_count[word] = 1
                     else:
-                        request.session["counters"][key] = word_count[word]
+                        word_count[word] += 1
+
+                '''
+                Going through all recipients
+                '''
+                unique_recipients = list(set(email["recipients"]))
+                for recipient in unique_recipients:
+                    '''
+                    If reciepient has not been seen before, recording recipient
+                    '''
+                    if not recipient in request.session["recipients"]:
+                        request.session["recipients"].append(recipient)
+                    request.session["emails"][email["timestamp"]].append(request.session["recipients"].index(recipient))
+
+                    '''
+                    Incrementing word counts for given recipient
+                    '''
+                    for word in word_count:
+
+                        key = str(request.session["words"].index(word)) + "-" + str(request.session["recipients"].index(recipient))
+
+                        # If word has been used with this recipient before, increment
+                        # otherwise, set to word_count
+                        if key in request.session["counters"]:
+                            request.session["counters"][key] += word_count[word]
+
+                        else:
+                            request.session["counters"][key] = word_count[word]
 
         # Django onlt considers it a change if a new key has been added
         request.session.modified = True
@@ -72,6 +77,7 @@ def upload_emails(request):
         Response here just for manual testing
         '''
         return JsonResponse({
+            "emails": request.session["emails"],
             "words": request.session["words"],
             "recipients": request.session["recipients"],
             "counters": request.session["counters"],
