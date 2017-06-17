@@ -17,16 +17,6 @@ MATCH_REGEX = LOCATION_NAMES + "|" + APOSTROPHE + "|" + WORDS
 
 def upload_emails(request):
 
-    '''
-    In-memory variable data store
-    '''
-    if "words" not in request.session:
-        request.session["words"] = []
-    if "recipients" not in request.session:
-        request.session["recipients"] = []
-    if "counters" not in request.session:
-        request.session["counters"] = {}
-
     if request.method == 'POST':
 
         try:
