@@ -5,7 +5,7 @@ from django.db import transaction
 from django.db.models import F
 
 from .models import Email, Recipient, Word
-DELAY_SECONDS = 2
+DELAY_SECONDS = 5
 
 class WordCounterMiddleware(object):
 

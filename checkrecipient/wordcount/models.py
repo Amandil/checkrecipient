@@ -21,5 +21,8 @@ class Word(models.Model):
     # Supports negatives - ideally we'd create a custom type
     count = models.BigIntegerField(default=0)
 
+    class Meta:
+        unique_together = (("address", "word"),)
+
     def __str__(self):
         return str(self.address) + " " + str(self.word) + " " + str(self.count)
