@@ -17,5 +17,5 @@ class TestUploadEmails(TransactionTestCase):
         input_data = json.loads(input_file.read())
 
         for upload in input_data["uploads"]:
-            response = self.client.post(UPLOAD_EMAILS,content_type="application/json", data=upload)
+            response = self.client.post(UPLOAD_EMAILS,content_type="application/json", data=json.dumps(upload))
             self.assertEqual(200, response.status_code, response.content)
